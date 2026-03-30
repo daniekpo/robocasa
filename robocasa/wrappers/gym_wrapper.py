@@ -227,13 +227,20 @@ class RoboCasaGymEnv(gym.Env):
         # now remap observation and action space
         self.observation_space = self.key_converter.deduce_observation_space(self.env)
         mapped_names, _, _, _ = self.key_converter.get_camera_config()
-        for mapped_name in mapped_names:
+        for mapped_name, cam_depth in zip(mapped_names, self.env.camera_depths):
             self.observation_space[mapped_name] = spaces.Box(
                 low=0,
                 high=255,
                 shape=(self.camera_heights, self.camera_widths, 3),
                 dtype=np.uint8,
             )
+            if cam_depth:
+                self.observation_space[f"{mapped_name}_depth"] = spaces.Box(
+                    low=-np.inf,
+                    high=np.inf,
+                    shape=(self.camera_heights, self.camera_widths, 1),
+                    dtype=np.float32,
+                )
 
         self.observation_space["annotation.human.task_description"] = spaces.Text(
             max_length=256, charset=ALLOWED_LANGUAGE_CHARSET
@@ -249,6 +256,8 @@ class RoboCasaGymEnv(gym.Env):
             if obs_name.endswith("_image"):
                 # image observations
                 raw_obs[obs_name] = process_img(obs_value)
+            elif obs_name.endswith("_depth"):
+                raw_obs[obs_name] = process_img(obs_value).astype(np.float32)
             else:
                 # non-image observations
                 raw_obs[obs_name] = obs_value.astype(np.float32)
@@ -259,6 +268,11 @@ class RoboCasaGymEnv(gym.Env):
                 raw_obs[f"{name}_image"] = np.zeros(
                     (self.camera_heights, self.camera_widths, 3), dtype=np.uint8
                 )
+            for name, cam_depth in zip(self.camera_names, self.env.camera_depths):
+                if cam_depth:
+                    raw_obs[f"{name}_depth"] = np.zeros(
+                        (self.camera_heights, self.camera_widths, 1), dtype=np.float32
+                    )
 
         self.render_cache = raw_obs[self.render_obs_key]
         raw_obs["language"] = self.env.get_ep_meta().get("lang", "")
@@ -277,6 +291,8 @@ class RoboCasaGymEnv(gym.Env):
         mapped_names, camera_names, _, _ = self.key_converter.get_camera_config()
         for mapped_name, camera_name in zip(mapped_names, camera_names):
             obs[mapped_name] = basic_obs[camera_name + "_image"]
+            if f"{camera_name}_depth" in basic_obs:
+                obs[f"{mapped_name}_depth"] = basic_obs[f"{camera_name}_depth"]
             # self.process_img(
             #     basic_obs[camera_name + "_image"]
             # )
