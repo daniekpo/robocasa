@@ -21,9 +21,9 @@ class PandaOmronKeyConverter:
     @classmethod
     def get_camera_config(cls):
         mapped_names = [
-            "video.robot0_agentview_left",
-            "video.robot0_agentview_right",
-            "video.robot0_eye_in_hand",
+            "robot0_agentview_left",
+            "robot0_agentview_right",
+            "robot0_eye_in_hand",
         ]
         camera_names = [
             "robot0_agentview_left",
@@ -290,7 +290,7 @@ class RoboCasaGymEnv(gym.Env):
                 raise ValueError(f"Unknown key: {k}")
         mapped_names, camera_names, _, _ = self.key_converter.get_camera_config()
         for mapped_name, camera_name in zip(mapped_names, camera_names):
-            obs[mapped_name] = basic_obs[camera_name + "_image"]
+            obs[f"{mapped_name}_image"] = basic_obs[camera_name + "_image"]
             if f"{camera_name}_depth" in basic_obs:
                 obs[f"{mapped_name}_depth"] = basic_obs[f"{camera_name}_depth"]
             # self.process_img(
