@@ -7,6 +7,8 @@ scene:
 robot:
   type: PandaOmron
   base_fixture: island_island_group_1
+  controller: null
+  control_freq: 20
 # Workspace distances are robot-local: +forward points toward the island and
 # +lateral points to the robot's left. The fixture also supplies the surface Z.
 workspace:
@@ -15,12 +17,10 @@ workspace:
   lateral_range: [-0.55, 0.55]
   margin: 0.03
 seed: null
-controller: null
 device: keyboard
 renderer: mjviewer
 render_camera: null
 show_walls: false
-control_freq: 20
 objects:
   - name: avocado
     type: avocado

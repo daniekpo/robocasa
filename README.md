@@ -110,11 +110,11 @@ python -m robocasa.demos.demo_scene_config \
     --scene-config robocasa/scene_configs/expanded_example_scene.yaml
 ```
 
-The scene and robot identity are grouped under `scene` and `robot`. Every
-object requires a `style`: a positive, one-based style number selects the same
-asset on every reset, while `style: random` explicitly allows the asset to be
-resampled. Object placement is grouped under `placement` with a type of
-`absolute`, `relation`, or `random`.
+The scene identity is grouped under `scene`; robot identity, controller, and
+control frequency are grouped under `robot`. Every object requires a `style`:
+a positive, one-based style number selects the same asset on every reset, while
+`style: random` explicitly allows the asset to be resampled. Object placement
+is grouped under `placement` with a type of `absolute`, `relation`, or `random`.
 
 `absolute_position` is the world-frame contact point beneath an object's
 bounding box, and quaternions use `wxyz` order. Relative `distance` values are

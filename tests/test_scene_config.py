@@ -87,8 +87,9 @@ def make_scene(objects: list[dict[str, object]]) -> dict[str, object]:
         "robot": {
             "type": "PandaOmron",
             "base_fixture": "island_island_group_1",
+            "controller": None,
+            "control_freq": 20,
         },
-        "controller": None,
         "device": "keyboard",
         "render_camera": None,
         "objects": normalized_objects,

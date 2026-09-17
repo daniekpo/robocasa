@@ -289,12 +289,10 @@ class SceneConfig:
             "robot",
             "workspace",
             "seed",
-            "controller",
             "device",
             "render_camera",
             "renderer",
             "show_walls",
-            "control_freq",
             "objects",
         }
         _reject_unknown_keys(data, allowed_keys, "scene config")
@@ -318,7 +316,11 @@ class SceneConfig:
         robot_config = data.get("robot")
         if not isinstance(robot_config, dict):
             raise SceneConfigError("robot must be a mapping")
-        _reject_unknown_keys(robot_config, {"type", "base_fixture"}, "robot")
+        _reject_unknown_keys(
+            robot_config,
+            {"type", "base_fixture", "controller", "control_freq"},
+            "robot",
+        )
         robot = _require_nonempty_string(robot_config, "type", "robot")
         robot_base_fixture = robot_config.get("base_fixture")
         if robot_base_fixture is not None and (
@@ -339,9 +341,9 @@ class SceneConfig:
         if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
             raise SceneConfigError("seed must be an integer or null")
 
-        controller = data.get("controller")
+        controller = robot_config.get("controller")
         if controller is not None and not isinstance(controller, str):
-            raise SceneConfigError("controller must be a string or null")
+            raise SceneConfigError("robot controller must be a string or null")
 
         device = data.get("device", "keyboard")
         if device not in SUPPORTED_DEVICES:
@@ -361,13 +363,13 @@ class SceneConfig:
         if not isinstance(show_walls, bool):
             raise SceneConfigError("show_walls must be a boolean")
 
-        control_freq = data.get("control_freq", 20)
+        control_freq = robot_config.get("control_freq", 20)
         if (
             isinstance(control_freq, bool)
             or not isinstance(control_freq, int)
             or control_freq <= 0
         ):
-            raise SceneConfigError("control_freq must be a positive integer")
+            raise SceneConfigError("robot control_freq must be a positive integer")
 
         raw_objects = data.get("objects")
         if not isinstance(raw_objects, list) or not raw_objects:
