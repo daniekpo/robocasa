@@ -100,6 +100,37 @@ Explore 2500+ kitchen scenes:
 python -m robocasa.demos.demo_kitchen_scenes
 ```
 
+### Launch a configured kitchen scene
+
+Create an interactive kitchen, including its robot and object placements, from
+a JSON or YAML file:
+
+```sh
+python -m robocasa.demos.demo_scene_config \
+    --scene-config robocasa/scene_configs/expanded_example_scene.yaml
+```
+
+The scene and robot identity are grouped under `scene` and `robot`. Every
+object requires a `style`: a positive, one-based style number selects the same
+asset on every reset, while `style: random` explicitly allows the asset to be
+resampled. Object placement is grouped under `placement` with a type of
+`absolute`, `relation`, or `random`.
+
+`absolute_position` is the world-frame contact point beneath an object's
+bounding box, and quaternions use `wxyz` order. Relative `distance` values are
+free gaps between object bounds. The supported relations are `left`, `right`,
+`in_front_of`, `behind`, and `on`; their directions follow the world axes. Set
+the robot's `base_fixture` to an exact fixture name to place it beside it.
+
+For less regular arrangements, replace `distance` with `distance_range` and
+add `orthogonal_jitter_range` inside the `relation` group; both are sampled
+during initialization. Objects whose placement has `type: random` are sampled
+without overlap inside the top-level `workspace`. Workspace forward and
+lateral ranges are measured in meters in the robot's local frame and are
+intersected with the configured fixture's surface. Set `seed` to an integer
+for repeatable sampling or `null` for a new arrangement on each launch. See
+`robocasa/scene_configs/expanded_example_scene.yaml` for a complete example.
+
 ### Explore library of 2500+ objects
 View and interact with both human-designed and AI-generated objects:
 ```

@@ -2,6 +2,7 @@ from robosuite.environments.base import make
 
 # Manipulation environments
 from robocasa.environments.kitchen.kitchen import Kitchen
+from robocasa.environments.kitchen.configured_kitchen import ConfiguredKitchen
 from robocasa.environments.kitchen.composite.adding_ice_to_beverages.make_ice_lemonade import (
     MakeIceLemonade,
 )

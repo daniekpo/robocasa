@@ -1,0 +1,81 @@
+# Absolute positions are world-frame contact points beneath object bounding
+# boxes. Quaternions use wxyz order. Relations use world X/Y/Z axes.
+scene:
+  environment: ConfiguredKitchen
+  layout_id: 48
+  style_id: 41
+robot:
+  type: PandaOmron
+  base_fixture: island_island_group_1
+# Workspace distances are robot-local: +forward points toward the island and
+# +lateral points to the robot's left. The fixture also supplies the surface Z.
+workspace:
+  fixture: island_island_group_1
+  forward_range: [0.35, 0.9]
+  lateral_range: [-0.55, 0.55]
+  margin: 0.03
+seed: null
+controller: null
+device: keyboard
+renderer: mjviewer
+render_camera: null
+show_walls: false
+control_freq: 20
+objects:
+  - name: avocado
+    type: avocado
+    style: 1
+    placement:
+      type: absolute
+      absolute_position: [1.55, -3.9, 0.92]
+      absolute_quat: [1.0, 0.0, 0.0, 0.0]
+
+  - name: bagel
+    type: bagel
+    style: 1
+    placement:
+      type: relation
+      relative_to: avocado
+      relation:
+        type: right
+        distance_range: [0.03, 0.07]
+        orthogonal_jitter_range: [-0.06, 0.06]
+
+  - name: bagged_food
+    type: bagged_food
+    style: 1
+    placement:
+      type: relation
+      relative_to: avocado
+      relation:
+        type: in_front_of
+        distance_range: [0.03, 0.07]
+        orthogonal_jitter_range: [-0.06, 0.06]
+
+  - name: basket
+    type: basket
+    style: 1
+    placement:
+      type: relation
+      relative_to: bagel
+      relation:
+        type: right
+        distance_range: [0.03, 0.07]
+        orthogonal_jitter_range: [-0.06, 0.06]
+
+  - name: can
+    type: can
+    style: 1
+    placement:
+      type: relation
+      relative_to: bagged_food
+      relation:
+        type: in_front_of
+        distance_range: [0.03, 0.07]
+        orthogonal_jitter_range: [-0.06, 0.06]
+
+  - name: boxed_drink
+    type: boxed_drink
+    style: 1
+    placement:
+      type: random

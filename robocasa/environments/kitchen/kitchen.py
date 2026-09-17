@@ -801,9 +801,7 @@ class Kitchen(ManipulationEnv, metaclass=KitchenEnvMeta):
 
         # setup object locations
         try:
-            self.placement_initializer = EnvUtils._get_placement_initializer(
-                self, self.object_cfgs
-            )
+            self.placement_initializer = self._get_placement_initializer()
         except PlacementError as e:
             if macros.VERBOSE:
                 print(
@@ -1163,6 +1161,14 @@ class Kitchen(ManipulationEnv, metaclass=KitchenEnvMeta):
         """
 
         return []
+
+    def _get_placement_initializer(self):
+        """Create the object placement initializer for this environment.
+
+        Returns:
+            ObjectPositionSampler: Initializer used to calculate object poses.
+        """
+        return EnvUtils._get_placement_initializer(self, self.object_cfgs)
 
     def get_ep_meta(self):
         """
