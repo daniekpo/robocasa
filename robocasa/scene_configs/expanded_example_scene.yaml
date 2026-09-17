@@ -1,26 +1,32 @@
 # Absolute positions are world-frame contact points beneath object bounding
 # boxes. Quaternions use wxyz order. Relations use world X/Y/Z axes.
-scene:
-  environment: ConfiguredKitchen
-  layout_id: 48
-  style_id: 41
-robot:
-  type: PandaOmron
-  base_fixture: island_island_group_1
-  controller: null
-  control_freq: 20
+
 # Workspace distances are robot-local: +forward points toward the island and
 # +lateral points to the robot's left. The fixture also supplies the surface Z.
-workspace:
-  fixture: island_island_group_1
-  forward_range: [0.35, 0.9]
-  lateral_range: [-0.55, 0.55]
-  margin: 0.03
+
 seed: null
 device: keyboard
 renderer: mjviewer
 render_camera: null
 show_walls: false
+
+scene:
+  environment: ConfiguredKitchen
+  layout_id: 48
+  style_id: 41
+
+robot:
+  type: PandaOmron
+  base_fixture: island_island_group_1
+  controller: null
+  control_freq: 20
+
+workspace:
+  fixture: island_island_group_1
+  forward_range: [0.35, 0.9]
+  lateral_range: [-0.55, 0.55]
+  margin: 0.03
+
 objects:
   - name: avocado
     type: avocado
