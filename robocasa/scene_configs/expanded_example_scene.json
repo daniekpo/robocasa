@@ -13,8 +13,8 @@
   },
   "workspace": {
     "fixture": "island_island_group_1",
-    "forward_range": [0.3456, 0.9044],
-    "lateral_range": [-0.2794, 0.2794],
+    "forward_range": [0.3048, 0.7874],
+    "lateral_range": [-0.4064, 0.4064],
     "margin": 0.03
   },
   "seed": null,
@@ -59,7 +59,7 @@
       "style": 1,
       "placement": {
         "type": "absolute",
-        "absolute_position": [1.55, -3.9, 0.92],
+        "absolute_position": [1.65, -3.9, 0.92],
         "absolute_quat": [1.0, 0.0, 0.0, 0.0]
       }
     },
@@ -72,8 +72,8 @@
         "relative_to": "avocado",
         "relation": {
           "type": "right",
-          "distance_range": [0.03, 0.07],
-          "orthogonal_jitter_range": [-0.06, 0.06]
+          "distance_range": [0.03, 0.04],
+          "orthogonal_jitter_range": [-0.015, 0.015]
         }
       }
     },
@@ -85,7 +85,7 @@
         "type": "relation",
         "relative_to": "avocado",
         "relation": {
-          "type": "in_front_of",
+          "type": "behind",
           "distance_range": [0.03, 0.07],
           "orthogonal_jitter_range": [-0.06, 0.06]
         }
@@ -99,9 +99,8 @@
         "type": "relation",
         "relative_to": "bagel",
         "relation": {
-          "type": "right",
-          "distance_range": [0.03, 0.07],
-          "orthogonal_jitter_range": [-0.06, 0.06]
+          "type": "in_front_of",
+          "distance_range": [0.01, 0.03]
         }
       }
     },
@@ -113,9 +112,8 @@
         "type": "relation",
         "relative_to": "bagged_food",
         "relation": {
-          "type": "in_front_of",
-          "distance_range": [0.03, 0.07],
-          "orthogonal_jitter_range": [-0.06, 0.06]
+          "type": "right",
+          "distance_range": [0.03, 0.07]
         }
       }
     },

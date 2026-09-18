@@ -8,7 +8,12 @@ from typing import Any
 import numpy as np
 from robosuite.utils.transform_utils import convert_quat, quat2mat
 
-from robocasa.scene_config import PlacementRelation, SceneConfig, SceneObjectConfig
+from robocasa.scene_config import (
+    PlacementRelation,
+    SceneConfig,
+    SceneConfigError,
+    SceneObjectConfig,
+)
 from robocasa.utils.errors import PlacementError
 from robocasa.utils.object_utils import objs_intersect_bbox
 
@@ -69,6 +74,7 @@ class ConfiguredScenePlacementSampler:
 
         Raises:
             PlacementError: If random objects cannot be placed without overlap.
+            SceneConfigError: If any object bounding box crosses the workspace.
         """
         del placed_objects, reference, on_top
         has_random_objects = any(
@@ -114,7 +120,22 @@ class ConfiguredScenePlacementSampler:
                 )
 
             placements[object_config.name] = (position, quaternion, obj)
+        self._validate_workspace(placements)
         return placements
+
+    def _validate_workspace(self, placements: dict[str, Placement]) -> None:
+        """Reject any configured object whose bounding box leaves the workspace."""
+        if self.workspace is None:
+            return
+        for object_name, (position, quaternion, obj) in placements.items():
+            violation = _get_workspace_violation(
+                obj, position, quaternion, self.workspace
+            )
+            if violation is not None:
+                raise SceneConfigError(
+                    f"Object '{object_name}' is outside the configured workspace: "
+                    f"{violation}"
+                )
 
     def _sample_random_position(
         self,
@@ -247,6 +268,16 @@ def _object_is_in_workspace(
     quaternion: np.ndarray,
     workspace: PlacementWorkspace,
 ) -> bool:
+    return _get_workspace_violation(obj, position, quaternion, workspace) is None
+
+
+def _get_workspace_violation(
+    obj: Any,
+    position: np.ndarray,
+    quaternion: np.ndarray,
+    workspace: PlacementWorkspace,
+) -> str | None:
+    """Describe the first workspace boundary crossed by an object bounding box."""
     world_points = _rotated_local_points(obj, quaternion) + position
     robot_local_points = (
         world_points[:, :2] - workspace.robot_position[:2]
@@ -255,14 +286,17 @@ def _object_is_in_workspace(
     forward_minimum, forward_maximum = workspace.forward_range
     lateral_minimum, lateral_maximum = workspace.lateral_range
     margin = workspace.margin
-    if np.any(robot_local_points[:, 0] < forward_minimum + margin):
-        return False
-    if np.any(robot_local_points[:, 0] > forward_maximum - margin):
-        return False
-    if np.any(robot_local_points[:, 1] < lateral_minimum + margin):
-        return False
-    if np.any(robot_local_points[:, 1] > lateral_maximum - margin):
-        return False
+    effective_limits = (
+        ("forward minimum", 0, forward_minimum + margin, np.min),
+        ("forward maximum", 0, forward_maximum - margin, np.max),
+        ("lateral minimum", 1, lateral_minimum + margin, np.min),
+        ("lateral maximum", 1, lateral_maximum - margin, np.max),
+    )
+    for label, axis, limit, reducer in effective_limits:
+        extent = float(reducer(robot_local_points[:, axis]))
+        crosses_limit = extent < limit if "minimum" in label else extent > limit
+        if crosses_limit:
+            return f"{label} is {limit:.4f} m, bounding-box extent is {extent:.4f} m"
 
     fixture_u = workspace.fixture_px[:2] - workspace.fixture_p0[:2]
     fixture_v = workspace.fixture_py[:2] - workspace.fixture_p0[:2]
@@ -273,10 +307,11 @@ def _object_is_in_workspace(
     v_projection = relative_points @ fixture_v / fixture_v_length**2
     u_margin = margin / fixture_u_length
     v_margin = margin / fixture_v_length
-    return bool(
-        np.all((u_projection >= u_margin) & (u_projection <= 1 - u_margin))
-        and np.all((v_projection >= v_margin) & (v_projection <= 1 - v_margin))
-    )
+    if not np.all((u_projection >= u_margin) & (u_projection <= 1 - u_margin)):
+        return "bounding box crosses the supporting fixture's first horizontal axis"
+    if not np.all((v_projection >= v_margin) & (v_projection <= 1 - v_margin)):
+        return "bounding box crosses the supporting fixture's second horizontal axis"
+    return None
 
 
 def _intersects_placed_object(

@@ -129,6 +129,18 @@ continuous vector. Camera intrinsics and camera-to-world matrices are available
 from `env.get_camera_calibration()`. Pass `as_gym=False` to get the raw
 RoboCasa environment.
 
+The modular example uses ground-truth simulator masks to detect the can and
+basket, reconstructs their positions from two RGB-D views, performs a
+pick-and-place, and saves a labeled video:
+
+```sh
+python example_modular_usage.py
+```
+
+To use a learned detector, implement the `ObjectDetector` interface in
+`example_modular_usage.py` and replace `GroundTruthObjectDetector`; the camera
+geometry, motion primitives, and video recording do not need to change.
+
 The scene identity is grouped under `scene`; robot identity, controller, and
 control frequency are grouped under `robot`. Every object requires a `style`:
 a positive, one-based style number selects the same asset on every reset, while
@@ -146,11 +158,16 @@ the robot's `base_fixture` to an exact fixture name to place it beside it.
 For less regular arrangements, replace `distance` with `distance_range` and
 add `orthogonal_jitter_range` inside the `relation` group; both are sampled
 during initialization. Objects whose placement has `type: random` are sampled
-without overlap inside the top-level `workspace`. Workspace forward and
-lateral ranges are measured in meters in the robot's local frame and are
-intersected with the configured fixture's surface. Set `seed` to an integer
-for repeatable sampling or `null` for a new arrangement on each launch. See
+without overlap inside the top-level `workspace`. Every absolute, relational,
+and random object's full rotated bounding box must remain within the workspace
+and supporting fixture; invalid configured placements raise an error.
+Workspace forward and lateral ranges are measured in meters in the robot's
+local frame. Set `seed` to an integer for repeatable sampling or `null` for a
+new arrangement on each launch. See
 `robocasa/scene_configs/expanded_example_scene.yaml` for a complete example.
+Object-object contacts remain allowed so relational and absolute layouts stay
+fully author-controlled; the modular example warns when configured objects
+begin in contact so unintended overlaps are easy to spot.
 
 The optional `cameras` group defines a shared image size, depth setting, and
 camera placements. With `fixture` set, `position` and `look_at` are offsets in

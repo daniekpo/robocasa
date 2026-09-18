@@ -41,7 +41,7 @@ def test_configured_kitchen_headless_reset() -> None:
         world_bounds = (
             np.asarray(avocado.get_bbox_points()) @ rotation.T + avocado_position
         )
-        np.testing.assert_allclose(world_bounds[:, :2].mean(axis=0), [1.55, -3.9])
+        np.testing.assert_allclose(world_bounds[:, :2].mean(axis=0), [1.65, -3.9])
         np.testing.assert_allclose(world_bounds[:, 2].min(), 0.92)
 
         island = env.fixtures[config.robot_base_fixture]

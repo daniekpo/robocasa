@@ -287,12 +287,12 @@ def test_load_bundled_scene_by_name() -> None:
 
     assert resolve_scene_config("expanded_example_scene").suffix == ".yaml"
     assert config.workspace is not None
-    assert config.workspace.forward_range[1] - config.workspace.forward_range[0] == pytest.approx(
-        0.5588
-    )
-    assert config.workspace.lateral_range[1] - config.workspace.lateral_range[0] == pytest.approx(
-        0.5588
-    )
+    assert config.workspace.forward_range[1] - config.workspace.forward_range[
+        0
+    ] == pytest.approx(0.4826)
+    assert config.workspace.lateral_range[1] - config.workspace.lateral_range[
+        0
+    ] == pytest.approx(0.8128)
     assert isinstance(config.cameras, CameraGroupConfig)
     assert config.cameras.names == (
         "robot_left",
@@ -523,7 +523,7 @@ def test_random_placement_stays_in_workspace_and_avoids_objects(
     scene = make_scene(
         [
             {"name": "random", "type": "bagel", "placement": "random"},
-            {"name": "anchor", "type": "can", "absolute_position": [0.3, 0, 0]},
+            {"name": "anchor", "type": "can", "absolute_position": [0.35, 0, 0]},
         ]
     )
     scene["workspace"] = {
@@ -566,3 +566,92 @@ def test_random_placement_stays_in_workspace_and_avoids_objects(
     assert np.all(random_points[:, 1] >= -0.38)
     assert np.all(random_points[:, 1] <= 0.38)
     assert not objs_intersect_bbox(random_points, anchor_points)
+
+
+@pytest.mark.parametrize(
+    ("position", "boundary"),
+    [
+        ([0.1, 0.0, 0.0], "forward minimum"),
+        ([0.9, 0.0, 0.0], "forward maximum"),
+        ([0.5, -0.35, 0.0], "lateral minimum"),
+        ([0.5, 0.35, 0.0], "lateral maximum"),
+    ],
+)
+def test_configured_placement_outside_workspace_raises(
+    tmp_path: Path, position: list[float], boundary: str
+) -> None:
+    scene = make_scene(
+        [{"name": "outside", "type": "can", "absolute_position": position}]
+    )
+    scene["workspace"] = {
+        "fixture": "island_island_group_1",
+        "forward_range": [0.2, 1.0],
+        "lateral_range": [-0.4, 0.4],
+        "margin": 0.02,
+    }
+    scene_path = tmp_path / "scene.json"
+    write_scene(scene_path, scene)
+    config = load_scene_config(scene_path)
+    objects = {"outside": FakeObject("outside", (-0.1, -0.1, -0.1), (0.1, 0.1, 0.1))}
+    workspace = PlacementWorkspace(
+        robot_position=np.zeros(3),
+        robot_yaw=0.0,
+        forward_range=(0.2, 1.0),
+        lateral_range=(-0.4, 0.4),
+        support_z=0.0,
+        fixture_p0=np.asarray([0.0, -1.0, 0.0]),
+        fixture_px=np.asarray([2.0, -1.0, 0.0]),
+        fixture_py=np.asarray([0.0, 1.0, 0.0]),
+        margin=0.02,
+    )
+
+    with pytest.raises(
+        SceneConfigError,
+        match=f"Object 'outside' is outside the configured workspace: {boundary}",
+    ):
+        ConfiguredScenePlacementSampler(config, objects, workspace=workspace).sample()
+
+
+def test_relative_placement_outside_workspace_raises(tmp_path: Path) -> None:
+    scene = make_scene(
+        [
+            {"name": "anchor", "type": "can", "absolute_position": [0.5, 0, 0]},
+            {
+                "name": "outside",
+                "type": "can",
+                "relative_to": "anchor",
+                "relation": "right",
+                "distance": 0.5,
+            },
+        ]
+    )
+    scene["workspace"] = {
+        "fixture": "island_island_group_1",
+        "forward_range": [0.2, 1.0],
+        "lateral_range": [-0.4, 0.4],
+        "margin": 0.02,
+    }
+    scene_path = tmp_path / "scene.json"
+    write_scene(scene_path, scene)
+    config = load_scene_config(scene_path)
+    objects = {
+        name: FakeObject(name, (-0.1, -0.1, -0.1), (0.1, 0.1, 0.1))
+        for name in ("anchor", "outside")
+    }
+    workspace = PlacementWorkspace(
+        robot_position=np.zeros(3),
+        robot_yaw=0.0,
+        forward_range=(0.2, 1.0),
+        lateral_range=(-0.4, 0.4),
+        support_z=0.0,
+        fixture_p0=np.asarray([0.0, -1.0, 0.0]),
+        fixture_px=np.asarray([2.0, -1.0, 0.0]),
+        fixture_py=np.asarray([0.0, 1.0, 0.0]),
+        margin=0.02,
+    )
+
+    with pytest.raises(
+        SceneConfigError,
+        match="Object 'outside' is outside the configured workspace: forward maximum",
+    ):
+        ConfiguredScenePlacementSampler(config, objects, workspace=workspace).sample()

@@ -26,9 +26,10 @@ robot:
 
 workspace:
   fixture: island_island_group_1
-  # 22 x 22 inches, centered on the manipulation workspace.
-  forward_range: [0.3456, 0.9044]
-  lateral_range: [-0.2794, 0.2794]
+  # A shallower 19-inch forward span and wider 32-inch lateral span keep the
+  # arm away from full extension while preserving a broad working area.
+  forward_range: [0.3048, 0.7874]
+  lateral_range: [-0.4064, 0.4064]
   margin: 0.03
 
 # Positions and look-at points are fixture-local offsets from the island center.
@@ -63,7 +64,7 @@ objects:
     style: 1
     placement:
       type: absolute
-      absolute_position: [1.55, -3.9, 0.92]
+      absolute_position: [1.65, -3.9, 0.92]
       absolute_quat: [1.0, 0.0, 0.0, 0.0]
 
   - name: bagel
@@ -74,8 +75,8 @@ objects:
       relative_to: avocado
       relation:
         type: right
-        distance_range: [0.03, 0.07]
-        orthogonal_jitter_range: [-0.06, 0.06]
+        distance_range: [0.03, 0.04]
+        orthogonal_jitter_range: [-0.015, 0.015]
 
   - name: bagged_food
     type: bagged_food
@@ -84,7 +85,7 @@ objects:
       type: relation
       relative_to: avocado
       relation:
-        type: in_front_of
+        type: behind
         distance_range: [0.03, 0.07]
         orthogonal_jitter_range: [-0.06, 0.06]
 
@@ -95,9 +96,8 @@ objects:
       type: relation
       relative_to: bagel
       relation:
-        type: right
-        distance_range: [0.03, 0.07]
-        orthogonal_jitter_range: [-0.06, 0.06]
+        type: in_front_of
+        distance_range: [0.01, 0.03]
 
   - name: can
     type: can
@@ -106,9 +106,8 @@ objects:
       type: relation
       relative_to: bagged_food
       relation:
-        type: in_front_of
+        type: right
         distance_range: [0.03, 0.07]
-        orthogonal_jitter_range: [-0.06, 0.06]
 
   - name: boxed_drink
     type: boxed_drink
