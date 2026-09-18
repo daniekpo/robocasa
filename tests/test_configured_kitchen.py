@@ -130,8 +130,8 @@ def test_scene_gym_environment_observations() -> None:
         eef_rotation = quat2mat(observation["robot0_eef_quat"])
         np.testing.assert_allclose(eef_rotation[:, 2], [0.0, 0.0, -1.0], atol=0.01)
         for camera_name in env.config.cameras.names:
-            assert observation[f"{camera_name}_image"].shape == (720, 1280, 3)
-            assert observation[f"{camera_name}_depth"].shape == (720, 1280, 1)
+            assert observation[f"{camera_name}_image"].shape == (480, 640, 3)
+            assert observation[f"{camera_name}_depth"].shape == (480, 640, 1)
             assert np.all(observation[f"{camera_name}_depth"] > 0)
         assert observation["robot0_joint_pos"].shape == (7,)
         assert observation["robot0_joint_vel"].shape == (7,)
@@ -150,7 +150,7 @@ def test_scene_gym_environment_observations() -> None:
         )
         assert terminated is False
         assert truncated is True
-        assert env.render().shape == (720, 1280, 3)
+        assert env.render().shape == (480, 640, 3)
         for calibration in env.get_camera_calibration().values():
             assert calibration["intrinsics"].shape == (3, 3)
             assert calibration["camera_to_world"].shape == (4, 4)

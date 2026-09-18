@@ -22,6 +22,17 @@ class StubDetector:
         return self.detections[camera_name]
 
 
+class PartiallyVisibleDetector(StubDetector):
+    """Fail one view to exercise long-horizon occlusion handling."""
+
+    def detect(
+        self, image: np.ndarray, camera_name: str, object_name: str
+    ) -> Detection:
+        if camera_name == "right":
+            raise RuntimeError("occluded")
+        return super().detect(image, camera_name, object_name)
+
+
 def test_detection_center_uses_nearest_mask_pixel() -> None:
     mask = np.zeros((5, 5), dtype=bool)
     mask[1, 1] = True
@@ -83,6 +94,37 @@ def test_localize_object_averages_projected_camera_points() -> None:
 
     np.testing.assert_allclose(estimate.world_point, [2.0, 2.0, 2.0])
     assert len(estimate.views) == 2
+
+
+def test_localize_object_uses_remaining_visible_camera() -> None:
+    detections = {
+        "left": Detection((1, 1, 1, 1)),
+        "right": Detection((1, 1, 1, 1)),
+    }
+    observation = {
+        f"{camera}_{suffix}": (
+            np.zeros((3, 3, 3), dtype=np.uint8)
+            if suffix == "image"
+            else np.ones((3, 3, 1))
+        )
+        for camera in detections
+        for suffix in ("image", "depth")
+    }
+    calibration = {
+        camera: {"intrinsics": np.eye(3), "camera_to_world": np.eye(4)}
+        for camera in detections
+    }
+
+    estimate = localize_object(
+        PartiallyVisibleDetector(detections),
+        observation,
+        calibration,
+        ("left", "right"),
+        "object",
+    )
+
+    assert len(estimate.views) == 1
+    np.testing.assert_allclose(estimate.world_point, [1.0, 1.0, 1.0])
 
 
 def test_world_error_to_delta_action_rotates_scales_and_clips() -> None:

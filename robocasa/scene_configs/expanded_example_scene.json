@@ -23,8 +23,8 @@
   "render_camera": null,
   "show_walls": false,
   "cameras": {
-    "width": 1280,
-    "height": 720,
+    "width": 640,
+    "height": 480,
     "depth": true,
     "placements": [
       {

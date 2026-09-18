@@ -299,7 +299,7 @@ def test_load_bundled_scene_by_name() -> None:
         "robot_right",
         "robot_and_counter",
     )
-    assert (config.cameras.width, config.cameras.height) == (1280, 720)
+    assert (config.cameras.width, config.cameras.height) == (640, 480)
     assert config.cameras.depth is True
     assert config.cameras.placements[0].roll == -7
     assert config.cameras.placements[1].roll == 7

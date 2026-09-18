@@ -31,7 +31,7 @@ setup(
         "lxml",
         "hidapi",
         "tianshou==0.4.10",
-        "lerobot==0.3.3",
+        "lerobot==0.4.4",
         "gymnasium",
     ],
     eager_resources=["*"],

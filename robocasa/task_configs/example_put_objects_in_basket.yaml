@@ -1,0 +1,11 @@
+name: example_put_objects_in_basket
+scene_name: expanded_example_scene
+commands:
+  - action: move
+    object: can
+    relation: in
+    target: basket
+  - action: move
+    object: boxed_drink
+    relation: in
+    target: basket

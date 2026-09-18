@@ -36,8 +36,8 @@ workspace:
 # The first two views flank the robot for close manipulation views. The third
 # sits across the island and looks toward the front of the robot.
 cameras:
-  width: 1280
-  height: 720
+  width: 640
+  height: 480
   depth: true
   placements:
     - name: robot_left

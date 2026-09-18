@@ -76,6 +76,7 @@ Welcome to RoboCasa's documentation!
    :caption: Use Cases
 
    use_cases/creating_datasets
+   use_cases/task_oracle_collection
    .. use_cases/creating_tasks
    .. use_cases/mimicgen
 
