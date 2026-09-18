@@ -105,7 +105,7 @@ def main() -> None:
     parser.add_argument(
         "--scene-config",
         required=True,
-        help="Path to a JSON or YAML RoboCasa scene configuration",
+        help="Bundled config name or path to a JSON/YAML scene configuration",
     )
     args = parser.parse_args()
 

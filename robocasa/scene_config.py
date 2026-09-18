@@ -15,6 +15,7 @@ from robocasa.models.objects.kitchen_objects import OBJ_CATEGORIES
 from robocasa.models.scenes.scene_registry import LayoutType, StyleType
 
 DEFAULT_ENVIRONMENT = "ConfiguredKitchen"
+SCENE_CONFIG_DIRECTORY = Path(__file__).parent / "scene_configs"
 SUPPORTED_DEVICES = {"keyboard", "spacemouse"}
 SUPPORTED_SUFFIXES = {".json", ".yaml", ".yml"}
 RANDOM_PLACEMENT = "random"
@@ -70,6 +71,98 @@ class WorkspaceConfig:
             lateral_range=lateral_range,
             margin=margin,
         )
+
+
+@dataclass(frozen=True)
+class CameraConfig:
+    """Placement of a fixed camera in the world or a fixture-local frame."""
+
+    name: str
+    position: tuple[float, float, float]
+    look_at: tuple[float, float, float]
+    fixture: str | None = None
+    fovy: float = 60.0
+    roll: float = 0.0
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], index: int) -> CameraConfig:
+        """Parse and validate one camera placement."""
+        if not isinstance(data, dict):
+            raise SceneConfigError(f"Camera at index {index} must be a mapping")
+        _reject_unknown_keys(
+            data,
+            {"name", "position", "look_at", "fixture", "fovy", "roll"},
+            f"camera at index {index}",
+        )
+        name = _require_nonempty_string(data, "name", f"camera at index {index}")
+        position = _parse_vector(data.get("position"), 3, f"Camera '{name}' position")
+        look_at = _parse_vector(data.get("look_at"), 3, f"Camera '{name}' look_at")
+        if position == look_at:
+            raise SceneConfigError(
+                f"Camera '{name}' position and look_at must be different"
+            )
+        fixture = data.get("fixture")
+        if fixture is not None and (
+            not isinstance(fixture, str) or not fixture.strip()
+        ):
+            raise SceneConfigError(
+                f"Camera '{name}' fixture must be a non-empty string or null"
+            )
+        fovy = _parse_number(data.get("fovy", 60.0), f"Camera '{name}' fovy")
+        if not 0 < fovy < 180:
+            raise SceneConfigError(f"Camera '{name}' fovy must be between 0 and 180")
+        roll = _parse_number(data.get("roll", 0.0), f"Camera '{name}' roll")
+        return cls(
+            name=name,
+            position=position,
+            look_at=look_at,
+            fixture=fixture,
+            fovy=fovy,
+            roll=roll,
+        )
+
+
+@dataclass(frozen=True)
+class CameraGroupConfig:
+    """Rendering settings and placements for algorithm observations."""
+
+    width: int
+    height: int
+    depth: bool
+    placements: tuple[CameraConfig, ...]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CameraGroupConfig:
+        """Parse and validate the camera observation group."""
+        if not isinstance(data, dict):
+            raise SceneConfigError("cameras must be a mapping")
+        _reject_unknown_keys(
+            data, {"width", "height", "depth", "placements"}, "cameras"
+        )
+        width = _require_positive_integer(data, "width", "cameras")
+        height = _require_positive_integer(data, "height", "cameras")
+        depth = data.get("depth", False)
+        if not isinstance(depth, bool):
+            raise SceneConfigError("cameras field 'depth' must be a boolean")
+        raw_placements = data.get("placements")
+        if not isinstance(raw_placements, list) or not raw_placements:
+            raise SceneConfigError("cameras placements must be a non-empty list")
+        placements = tuple(
+            CameraConfig.from_dict(camera, index)
+            for index, camera in enumerate(raw_placements)
+        )
+        names = [camera.name for camera in placements]
+        duplicates = sorted({name for name in names if names.count(name) > 1})
+        if duplicates:
+            raise SceneConfigError(
+                f"Duplicate camera name(s): {', '.join(duplicates)}"
+            )
+        return cls(width=width, height=height, depth=depth, placements=placements)
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        """Return camera names in observation order."""
+        return tuple(camera.name for camera in self.placements)
 
 
 @dataclass(frozen=True)
@@ -270,6 +363,8 @@ class SceneConfig:
     show_walls: bool
     control_freq: int
     objects: tuple[SceneObjectConfig, ...]
+    cameras: CameraGroupConfig | None = None
+    robot_start_joints: tuple[float, ...] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SceneConfig:
@@ -293,6 +388,7 @@ class SceneConfig:
             "render_camera",
             "renderer",
             "show_walls",
+            "cameras",
             "objects",
         }
         _reject_unknown_keys(data, allowed_keys, "scene config")
@@ -318,7 +414,7 @@ class SceneConfig:
             raise SceneConfigError("robot must be a mapping")
         _reject_unknown_keys(
             robot_config,
-            {"type", "base_fixture", "controller", "control_freq"},
+            {"type", "base_fixture", "start_joints", "controller", "control_freq"},
             "robot",
         )
         robot = _require_nonempty_string(robot_config, "type", "robot")
@@ -329,6 +425,12 @@ class SceneConfig:
             raise SceneConfigError(
                 "robot base_fixture must be a non-empty string or null"
             )
+        raw_start_joints = robot_config.get("start_joints")
+        robot_start_joints = (
+            _parse_number_sequence(raw_start_joints, "robot start_joints")
+            if raw_start_joints is not None
+            else None
+        )
 
         raw_workspace = data.get("workspace")
         workspace = (
@@ -371,6 +473,13 @@ class SceneConfig:
         ):
             raise SceneConfigError("robot control_freq must be a positive integer")
 
+        raw_cameras = data.get("cameras")
+        cameras = (
+            CameraGroupConfig.from_dict(raw_cameras)
+            if raw_cameras is not None
+            else None
+        )
+
         raw_objects = data.get("objects")
         if not isinstance(raw_objects, list) or not raw_objects:
             raise SceneConfigError("objects must be a non-empty list")
@@ -411,6 +520,7 @@ class SceneConfig:
             style_id=style_id,
             robot=robot,
             robot_base_fixture=robot_base_fixture,
+            robot_start_joints=robot_start_joints,
             workspace=workspace,
             seed=seed,
             controller=controller,
@@ -419,6 +529,7 @@ class SceneConfig:
             renderer=renderer,
             show_walls=show_walls,
             control_freq=control_freq,
+            cameras=cameras,
             objects=objects,
         )
         config.objects_in_placement_order()
@@ -461,6 +572,41 @@ class SceneConfig:
         return tuple(ordered)
 
 
+def resolve_scene_config(scene: str | Path) -> Path:
+    """Resolve a path or a bundled scene config name to a file.
+
+    Bare names are looked up in :data:`SCENE_CONFIG_DIRECTORY`. The `.yaml`,
+    `.yml`, and `.json` suffixes are tried in that order.
+
+    Args:
+        scene: Existing config path or bundled config name.
+
+    Returns:
+        Resolved scene config path.
+    """
+    path = Path(scene).expanduser()
+    if path.is_file():
+        return path
+    if path.parent != Path("."):
+        raise SceneConfigError(f"Scene config does not exist: '{path}'")
+
+    candidates = (
+        [SCENE_CONFIG_DIRECTORY / path.name]
+        if path.suffix
+        else [
+            SCENE_CONFIG_DIRECTORY / f"{path.name}{suffix}"
+            for suffix in (".yaml", ".yml", ".json")
+        ]
+    )
+    matches = [candidate for candidate in candidates if candidate.is_file()]
+    if not matches:
+        raise SceneConfigError(
+            f"Unknown scene config '{scene}'. Expected a path or a config name in "
+            f"'{SCENE_CONFIG_DIRECTORY}'"
+        )
+    return matches[0]
+
+
 def load_scene_config(scene_path: str | Path) -> SceneConfig:
     """Load and validate a JSON or YAML scene configuration.
 
@@ -470,7 +616,7 @@ def load_scene_config(scene_path: str | Path) -> SceneConfig:
     Returns:
         Validated scene configuration.
     """
-    path = Path(scene_path)
+    path = resolve_scene_config(scene_path)
     suffix = path.suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
         raise SceneConfigError(
@@ -514,6 +660,13 @@ def _require_integer(
     return value
 
 
+def _require_positive_integer(data: dict[str, Any], key: str, context: str) -> int:
+    value = _require_integer(data, key, context)
+    if value <= 0:
+        raise SceneConfigError(f"{context} field '{key}' must be a positive integer")
+    return value
+
+
 def _parse_number(value: Any, context: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise SceneConfigError(f"{context} must be a number")
@@ -526,6 +679,12 @@ def _parse_number(value: Any, context: str) -> float:
 def _parse_vector(value: Any, length: int, context: str) -> tuple[float, ...]:
     if not isinstance(value, (list, tuple)) or len(value) != length:
         raise SceneConfigError(f"{context} must contain exactly {length} numbers")
+    return tuple(_parse_number(component, context) for component in value)
+
+
+def _parse_number_sequence(value: Any, context: str) -> tuple[float, ...]:
+    if not isinstance(value, (list, tuple)) or not value:
+        raise SceneConfigError(f"{context} must be a non-empty list of numbers")
     return tuple(_parse_number(component, context) for component in value)
 
 

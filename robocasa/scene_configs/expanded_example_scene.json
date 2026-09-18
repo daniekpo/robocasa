@@ -7,13 +7,14 @@
   "robot": {
     "type": "PandaOmron",
     "base_fixture": "island_island_group_1",
+    "start_joints": [-0.085558, 0.231276, -0.066809, -1.315765, 0.015312, 1.546556, 0.530547],
     "controller": null,
     "control_freq": 20
   },
   "workspace": {
     "fixture": "island_island_group_1",
-    "forward_range": [0.35, 0.9],
-    "lateral_range": [-0.55, 0.55],
+    "forward_range": [0.3456, 0.9044],
+    "lateral_range": [-0.2794, 0.2794],
     "margin": 0.03
   },
   "seed": null,
@@ -21,6 +22,36 @@
   "renderer": "mjviewer",
   "render_camera": null,
   "show_walls": false,
+  "cameras": {
+    "width": 1280,
+    "height": 720,
+    "depth": true,
+    "placements": [
+      {
+        "name": "robot_left",
+        "fixture": "island_island_group_1",
+        "position": [-1.0, -0.12, 0.98],
+        "look_at": [0.0, -0.05, 0.55],
+        "fovy": 38,
+        "roll": -7
+      },
+      {
+        "name": "robot_right",
+        "fixture": "island_island_group_1",
+        "position": [1.0, -0.12, 0.98],
+        "look_at": [0.0, -0.05, 0.55],
+        "fovy": 38,
+        "roll": 7
+      },
+      {
+        "name": "robot_and_counter",
+        "fixture": "island_island_group_1",
+        "position": [0.0, 1.18, 1.27],
+        "look_at": [0.0, -0.35, 0.58],
+        "fovy": 36
+      }
+    ]
+  },
   "objects": [
     {
       "name": "avocado",

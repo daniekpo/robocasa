@@ -6,6 +6,7 @@ from robosuite.controllers import load_composite_controller_config
 from robosuite.utils.transform_utils import convert_quat, quat2mat
 
 import robocasa  # noqa: F401 - imports and registers RoboCasa environments
+from robocasa.example_env import make_scene_env
 from robocasa.scene_config import load_scene_config
 
 
@@ -107,5 +108,51 @@ def test_configured_kitchen_headless_reset() -> None:
             object_name: obj.mjcf_path for object_name, obj in env.objects.items()
         }
         assert second_model_paths == first_model_paths
+    finally:
+        env.close()
+
+
+def test_scene_gym_environment_observations() -> None:
+    env = make_scene_env("expanded_example_scene", horizon=2)
+
+    try:
+        observation, info = env.reset(seed=0)
+
+        assert env.observation_space.contains(observation)
+        assert env.action_space.shape == (12,)
+        assert info["scene_config"].layout_id == 48
+        np.testing.assert_allclose(
+            observation["robot0_joint_pos"], env.config.robot_start_joints, atol=0.02
+        )
+        np.testing.assert_allclose(
+            observation["robot0_eef_pos"], [1.68, -3.76, 1.21], atol=0.02
+        )
+        eef_rotation = quat2mat(observation["robot0_eef_quat"])
+        np.testing.assert_allclose(eef_rotation[:, 2], [0.0, 0.0, -1.0], atol=0.01)
+        for camera_name in env.config.cameras.names:
+            assert observation[f"{camera_name}_image"].shape == (720, 1280, 3)
+            assert observation[f"{camera_name}_depth"].shape == (720, 1280, 1)
+            assert np.all(observation[f"{camera_name}_depth"] > 0)
+        assert observation["robot0_joint_pos"].shape == (7,)
+        assert observation["robot0_joint_vel"].shape == (7,)
+        assert observation["robot0_base_pos"].shape == (3,)
+        assert observation["robot0_eef_pos"].shape == (3,)
+        for object_config in env.config.objects:
+            assert observation[f"{object_config.name}_pos"].shape == (3,)
+            assert observation[f"{object_config.name}_quat"].shape == (4,)
+
+        next_observation, _, _, _, _ = env.step(
+            np.zeros(env.action_space.shape, dtype=np.float32)
+        )
+        assert env.observation_space.contains(next_observation)
+        _, _, terminated, truncated, _ = env.step(
+            np.zeros(env.action_space.shape, dtype=np.float32)
+        )
+        assert terminated is False
+        assert truncated is True
+        assert env.render().shape == (720, 1280, 3)
+        for calibration in env.get_camera_calibration().values():
+            assert calibration["intrinsics"].shape == (3, 3)
+            assert calibration["camera_to_world"].shape == (4, 4)
     finally:
         env.close()

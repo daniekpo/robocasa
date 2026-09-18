@@ -5,9 +5,12 @@ import numpy as np
 import pytest
 
 from robocasa.scene_config import (
+    CameraGroupConfig,
     PlacementRelation,
+    SceneConfig,
     SceneConfigError,
     load_scene_config,
+    resolve_scene_config,
 )
 from robocasa.utils.object_utils import objs_intersect_bbox
 from robocasa.utils.scene_config_placement import (
@@ -277,6 +280,74 @@ def test_yaml_and_json_are_equivalent(tmp_path: Path) -> None:
     yaml_path.write_text(yaml.safe_dump(scene), encoding="utf-8")
 
     assert load_scene_config(json_path) == load_scene_config(yaml_path)
+
+
+def test_load_bundled_scene_by_name() -> None:
+    config = load_scene_config("expanded_example_scene")
+
+    assert resolve_scene_config("expanded_example_scene").suffix == ".yaml"
+    assert config.workspace is not None
+    assert config.workspace.forward_range[1] - config.workspace.forward_range[0] == pytest.approx(
+        0.5588
+    )
+    assert config.workspace.lateral_range[1] - config.workspace.lateral_range[0] == pytest.approx(
+        0.5588
+    )
+    assert isinstance(config.cameras, CameraGroupConfig)
+    assert config.cameras.names == (
+        "robot_left",
+        "robot_right",
+        "robot_and_counter",
+    )
+    assert (config.cameras.width, config.cameras.height) == (1280, 720)
+    assert config.cameras.depth is True
+    assert config.cameras.placements[0].roll == -7
+    assert config.cameras.placements[1].roll == 7
+    assert config.robot_start_joints == (
+        -0.085558,
+        0.231276,
+        -0.066809,
+        -1.315765,
+        0.015312,
+        1.546556,
+        0.530547,
+    )
+
+
+def test_camera_group_validation() -> None:
+    scene = make_scene(
+        [{"name": "anchor", "type": "avocado", "absolute_position": [0, 0, 1]}]
+    )
+    scene["cameras"] = {
+        "width": 256,
+        "height": 256,
+        "depth": True,
+        "placements": [
+            {
+                "name": "fixed",
+                "position": [1, 0, 1],
+                "look_at": [0, 0, 1],
+            },
+            {
+                "name": "fixed",
+                "position": [-1, 0, 1],
+                "look_at": [0, 0, 1],
+            },
+        ],
+    }
+
+    with pytest.raises(SceneConfigError, match="Duplicate camera name"):
+        SceneConfig.from_dict(scene)
+
+
+def test_robot_start_joints_must_be_numeric() -> None:
+    scene = make_scene(
+        [{"name": "anchor", "type": "avocado", "absolute_position": [0, 0, 1]}]
+    )
+    scene["robot"]["start_joints"] = [0.0, "invalid"]
+
+    with pytest.raises(SceneConfigError, match="robot start_joints must be a number"):
+        SceneConfig.from_dict(scene)
 
 
 @pytest.mark.parametrize("style", [None, 0, -1, "fixed", True])

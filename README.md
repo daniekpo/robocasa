@@ -103,18 +103,39 @@ python -m robocasa.demos.demo_kitchen_scenes
 ### Launch a configured kitchen scene
 
 Create an interactive kitchen, including its robot and object placements, from
-a JSON or YAML file:
+a bundled config name or a JSON/YAML file:
 
 ```sh
 python -m robocasa.demos.demo_scene_config \
-    --scene-config robocasa/scene_configs/expanded_example_scene.yaml
+    --scene-config expanded_example_scene
 ```
+
+For RL, BC, or modular policies, create a Gymnasium environment directly:
+
+```python
+from robocasa.example_env import make_scene_env
+
+env = make_scene_env("expanded_example_scene")
+observation, info = env.reset(seed=0)
+observation, reward, terminated, truncated, info = env.step(
+    env.action_space.sample()
+)
+```
+
+The dictionary observation contains upright RGB and metric depth for every configured camera,
+robot joint/base/end-effector state, gripper state, and every configured
+object's world pose. The action space is the robot controller's native bounded
+continuous vector. Camera intrinsics and camera-to-world matrices are available
+from `env.get_camera_calibration()`. Pass `as_gym=False` to get the raw
+RoboCasa environment.
 
 The scene identity is grouped under `scene`; robot identity, controller, and
 control frequency are grouped under `robot`. Every object requires a `style`:
 a positive, one-based style number selects the same asset on every reset, while
 `style: random` explicitly allows the asset to be resampled. Object placement
 is grouped under `placement` with a type of `absolute`, `relation`, or `random`.
+The optional robot `start_joints` list sets the arm's deterministic reset pose
+in radians and is checked against the selected robot's joint count and limits.
 
 `absolute_position` is the world-frame contact point beneath an object's
 bounding box, and quaternions use `wxyz` order. Relative `distance` values are
@@ -130,6 +151,12 @@ lateral ranges are measured in meters in the robot's local frame and are
 intersected with the configured fixture's surface. Set `seed` to an integer
 for repeatable sampling or `null` for a new arrangement on each launch. See
 `robocasa/scene_configs/expanded_example_scene.yaml` for a complete example.
+
+The optional `cameras` group defines a shared image size, depth setting, and
+camera placements. With `fixture` set, `position` and `look_at` are offsets in
+that fixture's local frame; without it, they are world coordinates. This keeps
+an island camera rig attached to the island if its world pose changes. Camera
+`roll` is expressed in degrees around the viewing axis.
 
 ### Explore library of 2500+ objects
 View and interact with both human-designed and AI-generated objects:
